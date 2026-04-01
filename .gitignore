@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Skill Designer</title>
+<style>
+:root {
+  --when:   #3b82f6;
+  --what:   #10b981;
+  --how:    #f59e0b;
+  --ref:    #8b5cf6;
+  --limits: #ef4444;
+  --bg:     #0f172a;
+  --surface:#1e293b;
+  --border: #334155;
+  --text:   #e2e8f0;
+  --muted:  #94a3b8;
+  --accent: #38bdf8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── HEADER ── */
+.header{background:linear-gradient(135deg,#1e3a5f 0%,#1a2744 100%);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.logo{display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:700;color:#fff}
+.logo-icon{background:linear-gradient(135deg,var(--accent),#6366f1);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.badge{background:#1d4ed8;color:#bfdbfe;font-size:.65rem;padding:2px 7px;border-radius:99px;font-weight:600;letter-spacing:.05em}
+
+/* ── MAIN ── */
+.main{max-width:1200px;margin:0 auto;padding:28px 20px}
+
+/* ── SECTION LABEL ── */
+.section-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── FRAMEWORK CARDS ── */
+.cards-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}
+@media(max-width:768px){.cards-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:480px){.cards-grid{grid-template-columns:repeat(2,1fr)}}
+.fcard{border-radius:12px;padding:18px 14px;cursor:pointer;transition:transform .15s,box-shadow .15s;border:1px solid transparent;position:relative;overflow:hidden;text-align:center;user-select:none}
+.fcard::before{content:'';position:absolute;inset:0;opacity:.12;border-radius:12px}
+.fcard:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,.4)}
+.fcard:active{transform:translateY(0)}
+.fcard[data-el="when"]{background:linear-gradient(135deg,#1e3a5f,#1e293b);border-color:var(--when)}
+.fcard[data-el="when"]:hover{box-shadow:0 8px 30px rgba(59,130,246,.3)}
+.fcard[data-el="what"]{background:linear-gradient(135deg,#064e3b,#1e293b);border-color:var(--what)}
+.fcard[data-el="what"]:hover{box-shadow:0 8px 30px rgba(16,185,129,.3)}
+.fcard[data-el="how"]{background:linear-gradient(135deg,#451a03,#1e293b);border-color:var(--how)}
+.fcard[data-el="how"]:hover{box-shadow:0 8px 30px rgba(245,158,11,.3)}
+.fcard[data-el="ref"]{background:linear-gradient(135deg,#2e1065,#1e293b);border-color:var(--ref)}
+.fcard[data-el="ref"]:hover{box-shadow:0 8px 30px rgba(139,92,246,.3)}
+.fcard[data-el="limits"]{background:linear-gradient(135deg,#450a0a,#1e293b);border-color:var(--limits)}
+.fcard[data-el="limits"]:hover{box-shadow:0 8px 30px rgba(239,68,68,.3)}
+.fcard-icon{font-size:1.8rem;margin-bottom:8px}
+.fcard-title{font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.fcard-sub{font-size:.68rem;color:var(--muted);line-height:1.4}
+.fcard[data-el="when"] .fcard-title{color:var(--when)}
+.fcard[data-el="what"] .fcard-title{color:var(--what)}
+.fcard[data-el="how"] .fcard-title{color:var(--how)}
+.fcard[data-el="ref"] .fcard-title{color:var(--ref)}
+.fcard[data-el="limits"] .fcard-title{color:var(--limits)}
+.click-hint{position:absolute;bottom:6px;right:8px;font-size:.58rem;color:var(--muted);opacity:.7}
+
+/* ── DEPT BUTTONS ── */
+.dept-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+.dept-btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.8rem;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:6px}
+.dept-btn:hover{background:#334155;border-color:var(--accent);color:var(--accent)}
+.dept-btn.active{background:#1d4ed8;border-color:#3b82f6;color:#fff}
+
+/* ── FREE INPUT ── */
+.free-input-wrap{display:flex;gap:10px;margin-bottom:28px}
+.free-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-size:.9rem;outline:none;transition:border-color .15s}
+.free-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,.15)}
+.free-input::placeholder{color:var(--muted)}
+.design-btn{background:linear-gradient(135deg,#1d4ed8,#6366f1);color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.design-btn:hover{opacity:.9}
+
+/* ── EDITOR + PREVIEW ── */
+.editor-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.editor-row{grid-template-columns:1fr}}
+.editor-panel,.preview-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+.panel-title{font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+/* Fields */
+.field-group{margin-bottom:14px}
+.field-label{display:flex;align-items:center;gap:8px;font-size:.75rem;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:.07em}
+.field-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.dot-when{background:var(--when)}
+.dot-what{background:var(--what)}
+.dot-how{background:var(--how)}
+.dot-ref{background:var(--ref)}
+.dot-limits{background:var(--limits)}
+.field-label span{color:var(--muted);font-weight:400;font-size:.7rem;text-transform:none;letter-spacing:0;margin-left:4px}
+textarea,input[type=text]{width:100%;background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:.82rem;line-height:1.6;outline:none;resize:vertical;transition:border-color .15s;font-family:inherit}
+textarea:focus,input[type=text]:focus{border-color:var(--accent)}
+textarea[data-el="when"]:focus{border-color:var(--when)}
+textarea[data-el="what"]:focus{border-color:var(--what)}
+textarea[data-el="how"]:focus{border-color:var(--how)}
+textarea[data-el="ref"]:focus{border-color:var(--ref)}
+textarea[data-el="limits"]:focus{border-color:var(--limits)}
+.name-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:16px;align-items:end}
+.generate-btn{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.generate-btn:hover{opacity:.9}
+
+/* Preview */
+.preview-code{background:#0a0f1a;border:1px solid #1e3a5f;border-radius:8px;padding:14px;font-family:'Cascadia Code','Consolas',monospace;font-size:.72rem;line-height:1.7;color:#94a3b8;white-space:pre-wrap;word-break:break-word;min-height:220px;max-height:380px;overflow-y:auto}
+.preview-code .yaml{color:#93c5fd}
+.preview-code .heading{color:#6ee7b7;font-weight:bold}
+.preview-code .label{color:#fbbf24}
+.preview-code .value{color:#e2e8f0}
+.preview-actions{display:flex;gap:8px;margin-top:12px}
+.copy-btn,.dl-btn{padding:8px 14px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.76rem;transition:all .15s;display:flex;align-items:center;gap:5px}
+.copy-btn:hover{background:#334155;color:#fff;border-color:#64748b}
+.copy-btn.copied{background:#064e3b;border-color:#10b981;color:#6ee7b7}
+.dl-btn:hover{background:#334155;color:#fff;border-color:#64748b}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:999;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:#1e293b;border-radius:16px;max-width:580px;width:100%;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.modal-header{padding:20px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:1rem;font-weight:700;display:flex;align-items:center;gap:10px}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;padding:0;line-height:1;transition:color .15s}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:20px 22px;max-height:60vh;overflow-y:auto}
+.modal-section{margin-bottom:18px}
+.modal-section h4{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;font-weight:600}
+.modal-section p{font-size:.85rem;line-height:1.7;color:#cbd5e1}
+.example-good,.example-bad{border-radius:8px;padding:10px 12px;font-size:.78rem;line-height:1.6;margin-bottom:6px;font-family:'Cascadia Code','Consolas',monospace}
+.example-good{background:#052e16;border-left:3px solid #10b981;color:#86efac}
+.example-bad{background:#450a0a;border-left:3px solid #ef4444;color:#fca5a5}
+.example-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px;font-family:'Segoe UI',sans-serif}
+.example-label.good{color:#10b981}
+.example-label.bad{color:#ef4444}
+.modal-use-btn{width:100%;padding:10px;background:linear-gradient(135deg,#1d4ed8,#6366f1);border:none;border-radius:8px;color:#fff;font-size:.82rem;font-weight:600;cursor:pointer;margin-top:6px;transition:opacity .15s}
+.modal-use-btn:hover{opacity:.9}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:#1e3a5f;border:1px solid #3b82f6;color:#bfdbfe;padding:10px 18px;border-radius:8px;font-size:.8rem;transform:translateY(80px);transition:transform .25s;z-index:9999;pointer-events:none}
+.toast.show{transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🛠</div>
+    <span>Claude Code Skill Designer</span>
+    <span class="badge">BETA</span>
+  </div>
+  <div style="font-size:.7rem;color:var(--muted)">5要素フレームワークでSkillを設計</div>
+</header>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- 5-ELEMENT CARDS -->
+  <div class="section-label">5要素フレームワーク — クリックして詳細を見る</div>
+  <div class="cards-grid">
+    <div class="fcard" data-el="when" onclick="openModal('when')">
+      <div class="fcard-icon">⏰</div>
+      <div class="fcard-title">WHEN</div>
+      <div class="fcard-sub">いつ使う？<br>トリガー条件</div>
+      <div class="click-hint">▶ 詳細</div>
+    </div>
+    <div class="fcard" data-el="what" onclick="openModal('what')">
+      <div class="fcard-icon">🎯</div>
+      <div class="fcard-title">WHAT</div>
+      <div class="fcard-sub">何をする？<br>目的・成果物</div>
+      <div class="click-hint">▶ 詳細</div>
+    </div>
+    <div class="fcard" data-el="how" onclick="openModal('how')">
+      <div class="fcard-icon">⚙️</div>
+      <div class="fcard-title">HOW</div>
+      <div class="fcard-sub">どうやる？<br>実行ステップ</div>
+      <div class="click-hint">▶ 詳細</div>
+    </div>
+    <div class="fcard" data-el="ref" onclick="openModal('ref')">
+      <div class="fcard-icon">📚</div>
+      <div class="fcard-title">REFERENCE</div>
+      <div class="fcard-sub">何を参照？<br>ファイル・知識</div>
+      <div class="click-hint">▶ 詳細</div>
+    </div>
+    <div class="fcard" data-el="limits" onclick="openModal('limits')">
+      <div class="fcard-icon">🚧</div>
+      <div class="fcard-title">LIMITS</div>
+      <div class="fcard-sub">やらないこと<br>制限・注意</div>
+      <div class="click-hint">▶ 詳細</div>
+    </div>
+  </div>
+
+  <!-- DEPT PRESETS -->
+  <div class="section-label">部門プリセット — クリックで即テンプレート生成</div>
+  <div class="dept-grid" id="deptGrid">
+    <button class="dept-btn" data-dept="cs" onclick="loadPreset('cs')">🎧 カスタマーサポート</button>
+    <button class="dept-btn" data-dept="trade" onclick="loadPreset('trade')">📈 取引・商品</button>
+    <button class="dept-btn" data-dept="compliance" onclick="loadPreset('compliance')">⚖️ コンプライアンス</button>
+    <button class="dept-btn" data-dept="finance" onclick="loadPreset('finance')">💰 財務・経営管理</button>
+    <button class="dept-btn" data-dept="marketing" onclick="loadPreset('marketing')">📣 マーケティング</button>
+    <button class="dept-btn" data-dept="it" onclick="loadPreset('it')">🔒 IT・セキュリティ</button>
+    <button class="dept-btn" data-dept="hr" onclick="loadPreset('hr')">👥 HR・人事</button>
+    <button class="dept-btn" data-dept="generic" onclick="loadPreset('generic')">✨ 汎用テンプレート</button>
+  </div>
+
+  <!-- FREE INPUT -->
+  <div class="section-label">自由入力 — 作りたいSkillを一文で</div>
+  <div class="free-input-wrap">
+    <input type="text" class="free-input" id="freeInput"
+      placeholder="例：「顧客からの入金エラー問い合わせに対応するSkillを設計して」「週次レポートを自動生成するSkillを作りたい」"
+      onkeydown="if(event.key==='Enter')designFromText()">
+    <button class="design-btn" onclick="designFromText()">✦ 設計する</button>
+  </div>
+
+  <!-- EDITOR + PREVIEW -->
+  <div class="section-label">Skillエディター</div>
+  <div class="editor-row">
+
+    <!-- EDITOR -->
+    <div class="editor-panel">
+      <div class="panel-title">✏️ &nbsp;5要素を記入</div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <div class="field-dot dot-when"></div>
+          <span style="color:var(--when)">WHEN</span>
+          <span>— いつ使うか（トリガー条件）</span>
+        </div>
+        <textarea id="f_when" data-el="when" rows="3"
+          placeholder="例：ユーザーが /cs-escalate と入力したとき&#10;問い合わせをエスカレーションすべきか判断が必要なとき"
+          oninput="updatePreview()"></textarea>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <div class="field-dot dot-what"></div>
+          <span style="color:var(--what)">WHAT</span>
+          <span>— 何をするか（成果物）</span>
+        </div>
+        <textarea id="f_what" data-el="what" rows="3"
+          placeholder="例：顧客問い合わせの緊急度・複雑度を判定し、エスカレーション先と理由を提示する&#10;出力：判定レポート（Markdownテキスト）"
+          oninput="updatePreview()"></textarea>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <div class="field-dot dot-how"></div>
+          <span style="color:var(--how)">HOW</span>
+          <span>— どうやるか（実行ステップ）</span>
+        </div>
+        <textarea id="f_how" data-el="how" rows="4"
+          placeholder="例：1. 問い合わせ内容のカテゴリを判定（入金/取引/コンプラ/その他）&#10;2. 緊急度スコアを算出（キーワードマッチ＋件数）&#10;3. エスカレーション先チームを判定&#10;4. 対応推奨メッセージを生成"
+          oninput="updatePreview()"></textarea>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <div class="field-dot dot-ref"></div>
+          <span style="color:var(--ref)">REFERENCE</span>
+          <span>— 参照する情報・ファイル</span>
+        </div>
+        <textarea id="f_ref" data-el="ref" rows="3"
+          placeholder="例：・社内エスカレーションフロー図（SOP）&#10;・過去対応履歴CSV&#10;・各チームのSlack/Teamsチャンネル一覧"
+          oninput="updatePreview()"></textarea>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <div class="field-dot dot-limits"></div>
+          <span style="color:var(--limits)">LIMITS</span>
+          <span>— やらないこと・制限事項</span>
+        </div>
+        <textarea id="f_limits" data-el="limits" rows="3"
+          placeholder="例：・顧客への直接返信はしない（提案のみ）&#10;・個人情報（口座番号・マイナンバー）を出力しない&#10;・法的判断は行わない"
+          oninput="updatePreview()"></textarea>
+      </div>
+
+      <div class="name-row">
+        <div>
+          <div class="field-label" style="margin-bottom:5px">
+            <span style="color:var(--muted)">SKILL名（/コマンド名）</span>
+          </div>
+          <input type="text" id="f_name" placeholder="例：cs-escalate" oninput="updatePreview()"
+            style="height:40px">
+        </div>
+        <button class="generate-btn" onclick="updatePreview()">▶ プレビュー更新</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="preview-panel">
+      <div class="panel-title">👁️ &nbsp;出力プレビュー (.md)</div>
+      <div class="preview-code" id="previewCode"></div>
+      <div class="preview-actions">
+        <button class="copy-btn" id="copyBtn" onclick="copyPreview()">📋 コピー</button>
+        <button class="dl-btn" onclick="downloadSkill()">⬇ .md ダウンロード</button>
+      </div>
+      <div style="margin-top:14px;padding:12px;background:#0f172a;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.07em">📂 保存先（Claude Code）</div>
+        <div style="font-size:.72rem;color:#94a3b8;font-family:monospace;line-height:1.8">
+          Windows: <span style="color:#bfdbfe">%USERPROFILE%\.claude\skills\<span id="previewPath">skill-name</span>.md</span><br>
+          Mac/Linux: <span style="color:#bfdbfe">~/.claude/skills/<span id="previewPath2">skill-name</span>.md</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────
+// MODAL DATA
+// ─────────────────────────────────────────
+const MODAL_DATA = {
+  when: {
+    color: 'var(--when)',
+    icon: '⏰',
+    title: 'WHEN — いつ使うか',
+    desc: 'ユーザーがこのSkillを呼ぶべき状況・トリガー条件を定義します。「/コマンド名」を入力したとき、または「○○の作業を始めたとき」のように、Claudeが自動的にSkillを提案するケースを指定します。',
+    tips: [
+      'コマンド名は短く・直感的に（例：/review, /report）',
+      '「〜するとき」「〜が必要なとき」という形式で書く',
+      '1つのSkillに2〜3個のトリガー条件で十分',
+    ],
+    good: [
+      '/cs-report を入力したとき',
+      'CS管理者が週次問い合わせ集計を依頼するとき',
+      '入金エラーの根本原因を分析したいとき',
+    ],
+    bad: [
+      '何かするとき（曖昧すぎ）',
+      'いつでも使えます（トリガーが不明確）',
+    ],
+    fieldId: 'f_when',
+  },
+  what: {
+    color: 'var(--what)',
+    icon: '🎯',
+    title: 'WHAT — 何をするか',
+    desc: 'このSkillが実行した結果として何が得られるか（成果物・アウトプット）を明確にします。「Markdownレポートを生成する」「分析結果をテーブルで出力する」のように、具体的な成果物形式を書きましょう。',
+    tips: [
+      '「〜を生成する」「〜を出力する」という動詞で終える',
+      '成果物のフォーマット（Markdown/テーブル/箇条書き）を明示',
+      '1 Skill = 1目的が理想。複数の目的は別Skillに分割',
+    ],
+    good: [
+      '週次CS問い合わせデータをカテゴリ別に集計し、Markdownレポートを生成する',
+      '入金エラーの原因カテゴリと発生件数テーブルを出力する',
+    ],
+    bad: [
+      'いろいろ分析する（範囲が不明確）',
+      'CS業務を助ける（成果物が不明）',
+    ],
+    fieldId: 'f_what',
+  },
+  how: {
+    color: 'var(--how)',
+    icon: '⚙️',
+    title: 'HOW — どうやるか',
+    desc: 'Claudeが実行すべきステップ・手順を番号付きリストで記述します。「ファイルを読む → 分析する → フォーマットして出力する」のように、Claudeのツール使用順序が明確になるよう書きます。',
+    tips: [
+      '番号付きステップで書く（1. 2. 3.）',
+      '使うツールを具体的に：「Bash で集計」「Glob でファイル検索」など',
+      '判断基準が必要なら条件分岐も記述',
+    ],
+    good: [
+      '1. /Downloads からCSVファイルを Glob で検索\n2. pandas で件数・カテゴリ集計\n3. 上位10カテゴリをMarkdownテーブルで出力\n4. 改善提案を3点箇条書きで追加',
+    ],
+    bad: [
+      'データを分析してレポートにする（ステップが不明）',
+      'CSVを読んで処理する（ツール・手順が不明確）',
+    ],
+    fieldId: 'f_how',
+  },
+  ref: {
+    color: 'var(--ref)',
+    icon: '📚',
+    title: 'REFERENCE — 何を参照するか',
+    desc: 'このSkillの実行に必要なファイル・ドキュメント・社内ルール・外部情報を列挙します。「どのファイルを読むか」「どの知識が必要か」を明確にすることで、Claudeが正確に動作します。',
+    tips: [
+      'ファイルパスは可能な限り具体的に',
+      '「最新版を参照」など鮮度要件があれば記載',
+      '社内SOP・規程・基準値なども含める',
+    ],
+    good: [
+      'C:/Users/kojima/Downloads/すべてのナビゲーションバー*.csv（最新）',
+      '社内エスカレーション基準（SOP_Escalation_v3.docx）',
+      'コンプライアンス規程 第3章（入金管理）',
+    ],
+    bad: [
+      '関連ファイル（どのファイルか不明）',
+      'Webで調べる（どこを調べるか不明）',
+    ],
+    fieldId: 'f_ref',
+  },
+  limits: {
+    color: 'var(--limits)',
+    icon: '🚧',
+    title: 'LIMITS — やらないこと・制限',
+    desc: 'このSkillのスコープ外・やってはいけないこと・出力してはいけない情報を定義します。Claudeが暴走しないよう「ここまでやる、ここからはやらない」の境界線を引きます。',
+    tips: [
+      '個人情報・秘密情報を出力しないなど安全制約は必須',
+      '「〜は行わない」「〜は出力しない」という禁止形で書く',
+      '権限外の操作（ファイル削除・本番操作など）を明示的に禁止',
+    ],
+    good: [
+      '顧客の口座番号・マイナンバーは出力しない',
+      '法的判断・投資アドバイスは行わない',
+      '本番DBへの書き込みは行わない（読み取り専用）',
+      'スコープ外の質問は「担当部署に相談」と回答する',
+    ],
+    bad: [
+      '何でもやる（制限なし）',
+      '違法なことはしない（当然すぎて意味なし）',
+    ],
+    fieldId: 'f_limits',
+  },
+};
+
+// ─────────────────────────────────────────
+// PRESETS
+// ─────────────────────────────────────────
+const PRESETS = {
+  cs: {
+    name: 'cs-inquiry-report',
+    when: '/cs-inquiry-report を入力したとき\nCS管理者が週次・月次の問い合わせ分析レポートを作成するとき\n問い合わせ傾向を確認して改善提案を求めるとき',
+    what: 'CSVファイルから顧客問い合わせを読み込み、カテゴリ別件数・傾向・改善提案をMarkdownレポートとして生成する\n出力：カテゴリ集計テーブル + 優先改善提案3〜5点',
+    how: '1. Downloads フォルダから最新の問い合わせCSVを Glob で検索\n2. pandas でカテゴリ大・中・小の集計を実行\n3. 件数上位10カテゴリをMarkdownテーブルで出力\n4. 複数回問い合わせ・未解決件数を横断集計\n5. 優先改善提案を★★★〜★の3段階で評価して箇条書き出力',
+    ref: 'C:/Users/kojima/Downloads/すべてのナビゲーションバー*.csv（最新ファイル）\n過去レポート（CS_顧客問い合わせ分析レポート_*.docx）\nCS改善SOP・エスカレーションフロー',
+    limits: '顧客の個人情報（氏名・口座番号）は出力しない\n分析・提案のみ行い、顧客への直接連絡は行わない\n法的・コンプライアンス判断は行わない（コンプラチームへ委ねる）',
+  },
+  trade: {
+    name: 'trade-error-guide',
+    when: '/trade-error-guide を入力したとき\n顧客から取引エラーの問い合わせが来たとき\n注文が通らない・約定しないという問題を解決するとき',
+    what: '取引エラーの種類を特定し、原因と対処手順をユーザー向けに分かりやすく説明する\n出力：エラー種別判定 + 解決手順（ステップバイステップ）+ FAQ候補',
+    how: '1. エラーメッセージまたは症状から原因カテゴリを判定\n   （残高不足 / 時間外 / 銘柄制限 / システム障害 等）\n2. 該当カテゴリの標準対応手順をSOPから引用\n3. 顧客向け説明文（平易な日本語・英語）を生成\n4. 同様問い合わせ用FAQ候補テキストを追加出力',
+    ref: '取引エラーコード一覧（trade_error_codes.md）\nCS対応SOP（取引カテゴリ）\nmoomoo証券 ヘルプセンターURL',
+    limits: '投資アドバイス・銘柄推奨は絶対に行わない\n口座への直接操作・取引の強制キャンセルは行わない\nシステム障害の場合はIT部門へのエスカレーションのみ案内',
+  },
+  compliance: {
+    name: 'compliance-check',
+    when: '/compliance-check を入力したとき\n新規施策・キャンペーン・文書に法令適合性の確認が必要なとき\nAML・疑わしい取引の予備確認をするとき',
+    what: '入力された文書・施策内容をコンプライアンス観点でチェックし、問題点・要確認事項・改善案を出力する\n出力：チェック結果（OK/要確認/NG）+ 該当法令・規程の参照箇所',
+    how: '1. 入力内容を金融商品取引法・AML・GDPR等の観点で分類\n2. リスクレベル（高/中/低）を判定\n3. 問題箇所を引用して具体的な懸念点を説明\n4. 改善案または確認が必要な法令・規程を列挙\n5. コンプライアンス担当者へのエスカレーション推奨度を判定',
+    ref: '金融商品取引法（最新条文）\n社内コンプライアンスマニュアル\nAMLポリシー（4月改訂版）\nSESC検査対応ガイドライン',
+    limits: '法的最終判断は行わない（コンプライアンスチームに委ねる）\n顧客の取引制限・口座停止の判断・実行は行わない\n調査結果を外部に共有しない（機密）',
+  },
+  finance: {
+    name: 'finance-kpi-report',
+    when: '/finance-kpi-report を入力したとき\n月次・週次KPIのサマリーレポートを作成するとき\n経営会議の資料準備をするとき',
+    what: 'KPIデータを読み込み、目標比・前期比を計算した経営サマリーレポートをMarkdownで生成する\n出力：KPIテーブル（目標/実績/達成率）+ エグゼクティブサマリー（3行）',
+    how: '1. KPIデータファイル（CSV/Excel）を読み込み\n2. 目標値と実績値の差分・達成率を計算\n3. 達成（≥100%）・準達成（80-99%）・未達（<80%）に色分け表示\n4. 前期比較（MoM/YoY）を算出\n5. 重要KPIのハイライト + 要因分析コメントを生成',
+    ref: 'KPIマスターデータ（kpi_master.xlsx）\n月次目標値ファイル\n前月・前年同期データ',
+    limits: '財務予測・投資判断は行わない\n未確定・速報値の場合は「速報」と明記する\n外部公開用資料として加工しない（社内限定）',
+  },
+  marketing: {
+    name: 'marketing-copy',
+    when: '/marketing-copy を入力したとき\nキャンペーン告知・SNS投稿・バナーコピーの作成が必要なとき\nメールマガジンの原稿を起こすとき',
+    what: 'マーケティングコピー（見出し・本文・CTA）をターゲット層に合わせて複数バリエーション生成する\n出力：バリエーション3案 + 各案の訴求ポイント解説',
+    how: '1. ターゲット層・キャンペーン内容・禁止表現を確認\n2. 規制上問題のある金融広告表現をチェック\n3. 見出し/本文/CTA（行動喚起）の3パートでコピーを3案作成\n4. 各案の特徴・推奨用途を1行でコメント',
+    ref: '金融広告規制ガイドライン（金融庁）\nブランドガイドライン（トーン&マナー）\n過去ヒットキャンペーン事例集\n禁止表現リスト',
+    limits: '「必ず儲かる」「損しない」等の誇大表現は絶対に使用しない\n金融商品取引法に抵触する表現を使わない\n最終的な法規チェックはコンプライアンスチームに委ねる',
+  },
+  it: {
+    name: 'it-incident-log',
+    when: '/it-incident-log を入力したとき\nシステム障害・セキュリティインシデント発生時の記録を残すとき\nBCP・DRリポートの雛形作成が必要なとき',
+    what: 'インシデント情報を収集し、標準フォーマットのインシデントレポートをMarkdownで生成する\n出力：インシデントレポート（発生日時/影響範囲/原因/対応経緯/再発防止策）',
+    how: '1. インシデント概要の入力を受ける（または既存ログを読み込む）\n2. 影響システム・サービス・ユーザー数を確認\n3. タイムライン（発生→検知→対応→解決）を整理\n4. 根本原因分析（5-Why）を実施\n5. 再発防止策を短期/中期/長期に分けて提案\n6. 各ステークホルダーへの通知文案を生成',
+    ref: 'インシデント対応SOP\nBCPリカバリーガイド\n連絡先一覧（エスカレーションツリー）\nGSX監査チェックリスト',
+    limits: '本番環境への直接操作・変更は行わない\n個人情報が含まれるログは匿名化して扱う\nセキュリティ上機密の脆弱性情報は外部共有しない',
+  },
+  hr: {
+    name: 'hr-review-prep',
+    when: '/hr-review-prep を入力したとき\n人事評価・昇格レビューの準備をするとき\n資格取得申請・研修計画のドキュメントを作成するとき',
+    what: '評価対象者の業績・OKR達成状況をまとめ、評価サマリードキュメントをMarkdownで生成する\n出力：評価サマリー（OKR達成率・定性評価・推薦コメント）',
+    how: '1. 対象者・評価期間・OKR目標を読み込む\n2. 各OKRの達成状況を入力/CSVから集計\n3. 定量（KPI達成率）と定性（コメント）を組み合わせた評価案を生成\n4. 昇格推薦/現状維持/要改善の判定案を提示（最終判断は管理職）\n5. 評価フィードバック文案を生成',
+    ref: 'OKRマスター（期末版）\n評価基準ガイドライン（HR配布版）\n前回評価記録\n資格取得支援制度規程',
+    limits: '個人評価情報は対象者・直属上長・HRのみ共有\n昇格の最終決定はHQ承認プロセスに従う\n給与・賞与の具体的金額は扱わない',
+  },
+  generic: {
+    name: 'my-skill',
+    when: '/my-skill を入力したとき\n[このSkillを使うべき具体的な状況を記入]',
+    what: '[このSkillが生成・出力するものを記入]\n出力形式：Markdown / テーブル / 箇条書き',
+    how: '1. [最初のステップを記入]\n2. [次のステップを記入]\n3. [最終出力ステップを記入]',
+    ref: '[参照するファイルパスやドキュメントを記入]\n[社内ルール・基準値など]',
+    limits: '[やってはいけないことを記入]\n[個人情報・機密情報の扱い方]\n[スコープ外の操作]',
+  },
+};
+
+// ─────────────────────────────────────────
+// FREE TEXT PATTERN MATCHING
+// ─────────────────────────────────────────
+function detectPreset(text) {
+  const t = text.toLowerCase();
+  if (/cs|カスタマー|問い合わせ|inquiry|サポート|チャット/.test(t)) return 'cs';
+  if (/取引|trade|注文|order|株|option|etf|為替/.test(t)) return 'trade';
+  if (/コンプラ|compliance|規制|aml|sesc|法令|監査/.test(t)) return 'compliance';
+  if (/財務|finance|kpi|経営|報告|レポート|report|集計/.test(t)) return 'finance';
+  if (/マーケ|marketing|キャンペーン|sns|広告|コピー/.test(t)) return 'marketing';
+  if (/it|セキュリティ|security|インシデント|システム|bcp/.test(t)) return 'it';
+  if (/hr|人事|評価|採用|資格|okr/.test(t)) return 'hr';
+  return 'generic';
+}
+
+function extractSkillName(text) {
+  const patterns = [
+    /「?(.+?)」?(?:の|を|という)?skill/i,
+    /(.+?)(?:skill|スキル)を/i,
+    /\/([a-zA-Z0-9-_]+)/,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) {
+      return m[1].trim()
+        .replace(/[「」\s]/g, '-')
+        .replace(/[^a-zA-Z0-9\-ぁ-ん一-龥]/g, '')
+        .toLowerCase()
+        .substring(0, 30) || 'my-skill';
+    }
+  }
+  return 'my-skill';
+}
+
+function designFromText() {
+  const text = document.getElementById('freeInput').value.trim();
+  if (!text) { showToast('テキストを入力してください'); return; }
+  const preset = detectPreset(text);
+  loadPreset(preset);
+  const skillName = extractSkillName(text);
+  if (skillName && skillName !== 'my-skill') {
+    document.getElementById('f_name').value = skillName;
+  }
+  updatePreview();
+  showToast(`「${preset}」テンプレートで設計しました ✓`);
+  document.querySelector('.editor-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─────────────────────────────────────────
+// PRESET LOADER
+// ─────────────────────────────────────────
+function loadPreset(key) {
+  const p = PRESETS[key];
+  if (!p) return;
+  document.getElementById('f_name').value = p.name;
+  document.getElementById('f_when').value = p.when;
+  document.getElementById('f_what').value = p.what;
+  document.getElementById('f_how').value = p.how;
+  document.getElementById('f_ref').value = p.ref;
+  document.getElementById('f_limits').value = p.limits;
+
+  // Active state on button
+  document.querySelectorAll('.dept-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.dept-btn[data-dept="${key}"]`);
+  if (btn) btn.classList.add('active');
+
+  updatePreview();
+  showToast(`「${key}」プリセットを読み込みました ✓`);
+}
+
+// ─────────────────────────────────────────
+// PREVIEW GENERATOR
+// ─────────────────────────────────────────
+function updatePreview() {
+  const name   = document.getElementById('f_name').value.trim() || 'my-skill';
+  const when   = document.getElementById('f_when').value.trim();
+  const what   = document.getElementById('f_what').value.trim();
+  const how    = document.getElementById('f_how').value.trim();
+  const ref    = document.getElementById('f_ref').value.trim();
+  const limits = document.getElementById('f_limits').value.trim();
+
+  // Build description from WHAT (first line)
+  const desc = what ? what.split('\n')[0].substring(0, 80) : `${name} Skill`;
+
+  const md = [
+    '---',
+    `description: "${desc}"`,
+    '---',
+    '',
+    `# /${name}`,
+    '',
+    '## WHEN — いつ使うか',
+    when || '（未入力）',
+    '',
+    '## WHAT — 何をするか',
+    what || '（未入力）',
+    '',
+    '## HOW — どうやるか',
+    how || '（未入力）',
+    '',
+    '## REFERENCE — 参照情報',
+    ref || '（未入力）',
+    '',
+    '## LIMITS — やらないこと',
+    limits || '（未入力）',
+  ].join('\n');
+
+  // Syntax-highlighted display
+  const highlighted = md
+    .replace(/^(---)/gm, '<span class="yaml">---</span>')
+    .replace(/^(description:.+)/gm, '<span class="yaml">$1</span>')
+    .replace(/^(# .+)/gm, '<span class="heading">$1</span>')
+    .replace(/^(## .+)/gm, '<span class="label">$1</span>');
+
+  document.getElementById('previewCode').innerHTML = highlighted;
+
+  // Path hints
+  const safeName = name.replace(/[^a-zA-Z0-9\-_]/g, '-');
+  document.getElementById('previewPath').textContent = safeName;
+  document.getElementById('previewPath2').textContent = safeName;
+
+  // Store for copy/download
+  document.getElementById('previewCode').dataset.raw = md;
+}
+
+// ─────────────────────────────────────────
+// COPY / DOWNLOAD
+// ─────────────────────────────────────────
+function copyPreview() {
+  const raw = document.getElementById('previewCode').dataset.raw || '';
+  if (!raw) { showToast('プレビューを生成してください'); return; }
+  navigator.clipboard.writeText(raw).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ コピー済み';
+    btn.classList.add('copied');
+    showToast('クリップボードにコピーしました ✓');
+    setTimeout(() => {
+      btn.textContent = '📋 コピー';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = raw;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('コピーしました ✓');
+  });
+}
+
+function downloadSkill() {
+  const raw = document.getElementById('previewCode').dataset.raw || '';
+  const name = document.getElementById('f_name').value.trim() || 'my-skill';
+  if (!raw) { showToast('プレビューを生成してください'); return; }
+  const blob = new Blob([raw], { type: 'text/markdown;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${name}.md`;
+  a.click();
+  showToast(`${name}.md をダウンロードしました ✓`);
+}
+
+// ─────────────────────────────────────────
+// MODAL
+// ─────────────────────────────────────────
+function openModal(el) {
+  const d = MODAL_DATA[el];
+  if (!d) return;
+
+  document.getElementById('modalTitle').innerHTML =
+    `<span style="font-size:1.3rem">${d.icon}</span>
+     <span style="color:${d.color}">${d.title}</span>`;
+
+  let html = `
+    <div class="modal-section">
+      <h4>定義</h4>
+      <p>${d.desc}</p>
+    </div>
+    <div class="modal-section">
+      <h4>書き方のコツ</h4>
+      <ul style="padding-left:16px;font-size:.83rem;color:#cbd5e1;line-height:2">
+        ${d.tips.map(t => `<li>${t}</li>`).join('')}
+      </ul>
+    </div>
+    <div class="modal-section">
+      <h4>良い例</h4>
+      ${d.good.map(g => `
+        <div class="example-label good">✓ GOOD</div>
+        <div class="example-good">${g.replace(/\n/g, '<br>')}</div>
+      `).join('')}
+    </div>
+    <div class="modal-section">
+      <h4>避けるべき例</h4>
+      ${d.bad.map(b => `
+        <div class="example-label bad">✗ AVOID</div>
+        <div class="example-bad">${b.replace(/\n/g, '<br>')}</div>
+      `).join('')}
+    </div>
+    <button class="modal-use-btn" onclick="focusField('${d.fieldId}');closeModal()">
+      ✏️ このフィールドを編集する
+    </button>
+  `;
+
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function focusField(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => el.focus(), 300);
+  }
+}
+
+// ─────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─────────────────────────────────────────
+// KEYBOARD SHORTCUT
+// ─────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+updatePreview();
+</script>
+</body>
+</html>
